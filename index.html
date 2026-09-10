@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototype Tra cứu Mệnh Quái & Trạch Quái</title>
+<style>
+  :root {
+    --navy:#0b2742;
+    --navy-2:#123c61;
+    --blue:#1478b8;
+    --gold:#c7a356;
+    --gold-soft:#f3ead6;
+    --ink:#15202b;
+    --muted:#6b7785;
+    --line:#d9e1e8;
+    --bg:#f5f7f9;
+    --card:#ffffff;
+    --good:#2f6d4f;
+    --good-bg:#eaf4ee;
+    --bad:#8f4b46;
+    --bad-bg:#f7ecea;
+    --neutral:#6c6f75;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0;
+    font-family: Georgia, "Times New Roman", serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 15% 5%, rgba(199,163,86,.10), transparent 28rem),
+      linear-gradient(180deg,#fbfcfd 0,#f4f7f9 100%);
+  }
+  button, input, select { font:inherit; }
+  .shell { width:min(1180px, calc(100% - 28px)); margin:0 auto; }
+  header {
+    background:linear-gradient(135deg,var(--navy),#0e3557 70%,#164f7c);
+    color:#fff; padding:34px 0 30px; border-bottom:4px solid var(--gold);
+  }
+  .eyebrow {
+    font-family: Arial, Helvetica, sans-serif;
+    letter-spacing:.18em; text-transform:uppercase; font-size:12px;
+    color:#e7d8b5; font-weight:700;
+  }
+  h1 { margin:8px 0 8px; font-size:clamp(28px,4vw,46px); line-height:1.05; }
+  .subtitle {
+    margin:0; max-width:760px; color:#dfeaf2; font-family:Arial,Helvetica,sans-serif;
+    font-size:15px; line-height:1.55;
+  }
+  main { padding:28px 0 56px; }
+  .panel {
+    background:rgba(255,255,255,.96); border:1px solid #e3e8ed; border-radius:18px;
+    box-shadow:0 16px 38px rgba(20,40,60,.08); overflow:hidden;
+  }
+  .panel-head {
+    padding:18px 22px; border-bottom:1px solid #e8edf1;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .panel-head h2 { margin:0; font-size:22px; }
+  .source-tag {
+    font-family:Arial,Helvetica,sans-serif; font-size:12px; padding:7px 10px;
+    border-radius:999px; background:#eef4f8; color:#47647b;
+  }
+  .form-wrap { padding:22px; }
+  .form-grid {
+    display:grid; grid-template-columns:1.1fr .8fr 1.05fr 1fr auto; gap:14px; align-items:end;
+  }
+  label {
+    display:block; font-family:Arial,Helvetica,sans-serif; font-size:12px; font-weight:700;
+    color:#526171; margin-bottom:7px; text-transform:uppercase; letter-spacing:.05em;
+  }
+  input, select {
+    width:100%; height:46px; border:1px solid #cfd8df; border-radius:10px; padding:0 12px;
+    background:#fff; color:var(--ink); outline:none;
+  }
+  input:focus, select:focus { border-color:#8aa9c1; box-shadow:0 0 0 3px rgba(20,120,184,.12); }
+  .primary {
+    height:46px; border:0; border-radius:10px; padding:0 20px; cursor:pointer;
+    background:linear-gradient(135deg,var(--gold),#a9853c); color:#fff; font-weight:700;
+    white-space:nowrap; box-shadow:0 7px 18px rgba(169,133,60,.22);
+  }
+  .hint {
+    margin:14px 0 0; font-family:Arial,Helvetica,sans-serif; color:#6c7884; font-size:12px; line-height:1.55;
+  }
+  .result-strip {
+    margin-top:22px; display:grid; grid-template-columns:repeat(4,1fr); gap:14px;
+  }
+  .metric {
+    background:#fff; border:1px solid #e1e7ec; border-radius:15px; padding:16px 18px;
+  }
+  .metric .k { font-family:Arial,Helvetica,sans-serif; color:#75818d; font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+  .metric .v { margin-top:6px; font-size:23px; font-weight:700; color:var(--navy); }
+  .metric .s { margin-top:4px; font-family:Arial,Helvetica,sans-serif; font-size:12px; color:#76818b; }
+
+  .board-section { margin-top:22px; }
+  .board-panel { padding:24px; }
+  .board-title-row {
+    display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:18px;
+  }
+  .board-title-row h2 { margin:0 0 5px; font-size:24px; }
+  .board-title-row p { margin:0; font-family:Arial,Helvetica,sans-serif; color:#6e7b86; font-size:13px; }
+  .legend { display:flex; gap:8px; flex-wrap:wrap; font-family:Arial,Helvetica,sans-serif; font-size:11px; justify-content:flex-end; }
+  .legend span { padding:7px 10px; border-radius:999px; border:1px solid transparent; }
+  .legend .g { background:var(--good-bg); color:var(--good); border-color:#d8eadf; }
+  .legend .b { background:var(--bad-bg); color:var(--bad); border-color:#efdbd7; }
+
+  .compass-wrap {
+    position:relative; max-width:850px; margin:36px auto 8px; padding:64px 58px 58px;
+    background:linear-gradient(145deg,#1379b9,#0d5b91);
+    border-radius:28px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.15),0 20px 48px rgba(9,58,93,.18);
+  }
+  .arrow {
+    position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    width:0; height:0; border-left:25px solid transparent; border-right:25px solid transparent;
+    border-bottom:42px solid #fff;
+    filter:drop-shadow(0 4px 4px rgba(0,0,0,.08));
+  }
+  .arrow-label {
+    position:absolute; top:16px; left:calc(50% + 42px); color:#fff;
+    font-family:Arial,Helvetica,sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+  }
+  .grid {
+    display:grid; grid-template-columns:repeat(3,1fr); border:1px solid rgba(0,0,0,.6);
+    background:#fff; box-shadow:0 5px 18px rgba(0,0,0,.12);
+  }
+  .sector {
+    min-height:160px; padding:12px 12px 14px; border-right:1px solid #333; border-bottom:1px solid #333;
+    display:flex; flex-direction:column; justify-content:center; text-align:center; position:relative;
+    background:#fff;
+  }
+  .sector:nth-child(3n) { border-right:0; }
+  .sector:nth-child(n+7) { border-bottom:0; }
+  .direction {
+    position:absolute; left:10px; top:9px; font-family:Arial,Helvetica,sans-serif; font-weight:800;
+    font-size:11px; color:#61707f; text-transform:uppercase; letter-spacing:.06em;
+  }
+  .facing-mark {
+    position:absolute; top:8px; right:8px; font-family:Arial,Helvetica,sans-serif;
+    font-size:9px; font-weight:800; background:#e6f3fb; color:#0e679f; padding:4px 6px; border-radius:999px;
+  }
+  .star-block { margin-top:12px; }
+  .star-line { display:flex; align-items:center; justify-content:center; gap:7px; flex-wrap:wrap; }
+  .star-line + .star-line { margin-top:8px; }
+  .kind {
+    font-family:Arial,Helvetica,sans-serif; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:#7b8792;
+  }
+  .star {
+    padding:6px 9px; border-radius:8px; font-size:clamp(13px,1.7vw,17px); font-weight:700; border:1px solid transparent;
+  }
+  .star.good { color:var(--good); background:var(--good-bg); border-color:#d9eadd; }
+  .star.bad { color:var(--bad); background:var(--bad-bg); border-color:#efd9d5; }
+  .center {
+    background:linear-gradient(145deg,#f8f1df,#f3e5c1); color:var(--navy);
+  }
+  .center .center-k { font-family:Arial,Helvetica,sans-serif; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#7d6d49; }
+  .center .center-v { font-size:23px; font-weight:700; margin:3px 0 10px; }
+  .center .slash { width:55%; height:1px; background:rgba(116,91,42,.25); margin:0 auto 10px; }
+  .compass-footer {
+    margin-top:13px; color:#e9f5fb; text-align:center; font-family:Arial,Helvetica,sans-serif; font-size:12px;
+  }
+
+  .detail-grid { margin-top:22px; display:grid; grid-template-columns:1.3fr .7fr; gap:18px; }
+  .table-panel, .test-panel { padding:20px; }
+  .table-panel h3, .test-panel h3 { margin:0 0 14px; font-size:20px; }
+  table { width:100%; border-collapse:collapse; font-family:Arial,Helvetica,sans-serif; font-size:13px; }
+  th { text-align:left; background:#f4f7f9; color:#536170; font-size:11px; text-transform:uppercase; letter-spacing:.05em; padding:10px; }
+  td { border-top:1px solid #e6ebef; padding:10px; }
+  td .mini { display:inline-block; padding:4px 7px; border-radius:7px; font-weight:700; }
+  td .mini.good { background:var(--good-bg); color:var(--good); }
+  td .mini.bad { background:var(--bad-bg); color:var(--bad); }
+  .test-status {
+    font-family:Arial,Helvetica,sans-serif; border-radius:12px; padding:12px; background:#f3f7fa;
+    color:#456175; font-size:13px; margin-bottom:12px;
+  }
+  .test-list { display:flex; flex-direction:column; gap:8px; }
+  .test-case {
+    width:100%; text-align:left; border:1px solid #dfe6eb; background:#fff; border-radius:10px; padding:10px 12px; cursor:pointer;
+    color:#293745; font-family:Arial,Helvetica,sans-serif; font-size:12px;
+  }
+  .test-case:hover { border-color:#9bb3c5; background:#f9fbfc; }
+  .test-case strong { color:var(--navy); }
+  .note {
+    margin-top:18px; padding:14px 16px; border-left:3px solid var(--gold); background:#fffaf0;
+    font-family:Arial,Helvetica,sans-serif; color:#685d48; font-size:12px; line-height:1.55;
+  }
+  footer {
+    margin-top:28px; font-family:Arial,Helvetica,sans-serif; color:#7c8791; font-size:11px; text-align:center;
+  }
+
+  /* Popup giải nghĩa Du Niên */
+  .star, .mini, .star-card { cursor:pointer; }
+  .star:hover, .mini:hover { filter:brightness(.98); box-shadow:0 3px 10px rgba(20,40,60,.08); }
+  .du-nien-guide { margin-top:22px; padding:22px; }
+  .du-nien-guide h3 { margin:0 0 6px; font-size:22px; }
+  .du-nien-guide .guide-intro { margin:0 0 16px; font-family:Arial,Helvetica,sans-serif; color:#6e7b86; font-size:13px; line-height:1.5; }
+  .star-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .star-card { border:1px solid #e1e7ec; border-radius:14px; padding:15px; background:#fff; text-align:left; transition:.18s ease; }
+  .star-card:hover { transform:translateY(-1px); box-shadow:0 8px 22px rgba(20,40,60,.07); }
+  .star-card.good { border-top:3px solid #5f8f72; }
+  .star-card.bad { border-top:3px solid #a86862; }
+  .star-card .title-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .star-card .name { font-weight:700; font-size:17px; color:var(--navy); }
+  .star-card .tag { font-family:Arial,Helvetica,sans-serif; font-size:10px; font-weight:800; text-transform:uppercase; padding:4px 7px; border-radius:999px; }
+  .star-card.good .tag { background:var(--good-bg); color:var(--good); }
+  .star-card.bad .tag { background:var(--bad-bg); color:var(--bad); }
+  .star-card p { margin:0; font-family:Arial,Helvetica,sans-serif; font-size:12px; line-height:1.55; color:#61707d; }
+
+  .modal-backdrop { position:fixed; inset:0; z-index:9999; display:none; align-items:center; justify-content:center; padding:18px; background:rgba(8,25,40,.58); backdrop-filter:blur(3px); }
+  .modal-backdrop.open { display:flex; }
+  .modal-card { width:min(560px,100%); background:#fff; border-radius:18px; box-shadow:0 24px 70px rgba(0,0,0,.25); overflow:hidden; }
+  .modal-head { padding:20px 22px 14px; display:flex; justify-content:space-between; gap:14px; border-bottom:1px solid #edf0f2; }
+  .modal-title-wrap { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .modal-title { margin:0; font-size:26px; color:var(--navy); }
+  .modal-badge { font-family:Arial,Helvetica,sans-serif; font-size:11px; font-weight:800; text-transform:uppercase; padding:5px 8px; border-radius:999px; }
+  .modal-badge.good { background:var(--good-bg); color:var(--good); }
+  .modal-badge.bad { background:var(--bad-bg); color:var(--bad); }
+  .modal-close { width:36px; height:36px; border:0; background:#f3f6f8; border-radius:50%; cursor:pointer; font-size:20px; line-height:1; color:#546371; }
+  .modal-body { padding:20px 22px 22px; }
+  .modal-body p { margin:0 0 14px; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.65; color:#4f5f6d; }
+  .modal-context { margin:0 0 16px; padding:10px 12px; border-radius:10px; background:#f6f8fa; font-family:Arial,Helvetica,sans-serif; font-size:12px; color:#61707d; }
+  .modal-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .detail-link { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:0 16px; border:0; border-radius:10px; background:var(--navy); color:#fff; font-family:Arial,Helvetica,sans-serif; font-weight:700; cursor:pointer; text-decoration:none; }
+  .detail-link:hover { background:#113b60; }
+  .link-note { font-family:Arial,Helvetica,sans-serif; font-size:11px; color:#8a6d3b; }
+  @media(max-width:900px) { .star-cards { grid-template-columns:repeat(2,1fr); } }
+  @media(max-width:560px) { .star-cards { grid-template-columns:1fr; } .modal-title { font-size:22px; } }
+
+  @media(max-width:900px) {
+    .form-grid { grid-template-columns:1fr 1fr; }
+    .form-grid .primary { grid-column:1/-1; }
+    .result-strip { grid-template-columns:1fr 1fr; }
+    .detail-grid { grid-template-columns:1fr; }
+    .board-title-row { flex-direction:column; }
+    .legend { justify-content:flex-start; }
+    .compass-wrap { padding:58px 14px 14px; border-radius:18px; }
+    .sector { min-height:145px; padding:9px 6px 11px; }
+  }
+  @media(max-width:560px) {
+    .form-grid { grid-template-columns:1fr; }
+    .result-strip { grid-template-columns:1fr 1fr; }
+    .board-panel { padding:14px; }
+    .compass-wrap { margin-top:28px; }
+    .sector { min-height:132px; }
+    .star-line { display:block; }
+    .kind { display:block; margin-bottom:3px; }
+    .star { display:inline-block; padding:5px 6px; font-size:12px; }
+    .direction { font-size:9px; top:6px; left:6px; }
+    .facing-mark { display:none; }
+    .center .center-v { font-size:18px; }
+    .arrow-label { display:none; }
+  }
+  @media print {
+    body { background:#fff; }
+    header { padding:16px 0; }
+    .form-wrap, .test-panel, .hint { display:none !important; }
+    .panel, .metric, .compass-wrap { box-shadow:none; }
+    main { padding-top:12px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="shell">
+    <div class="eyebrow">Prototype · Bát Trạch</div>
+    <h1>Tra cứu Mệnh Quái &amp; Trạch Quái</h1>
+    <p class="subtitle">Nhập năm sinh, giới tính và hướng nhà để lập bàn 9 cung. Mỗi cung hiển thị đồng thời Du Niên theo Trạch Quái và theo Mệnh Quái, xoay theo hướng nhà giống bố cục mẫu.</p>
+  </div>
+</header>
+
+<main class="shell">
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Thông tin tra cứu</h2>
+      <span class="source-tag">Dữ liệu từ file Excel 5 sheet</span>
+    </div>
+    <div class="form-wrap">
+      <div class="form-grid">
+        <div>
+          <label for="birthYear">Năm sinh</label>
+          <input id="birthYear" type="number" min="1800" max="2200" value="1985" inputmode="numeric">
+        </div>
+        <div>
+          <label for="gender">Giới tính</label>
+          <select id="gender">
+            <option value="Nam">Nam</option>
+            <option value="Nữ">Nữ</option>
+          </select>
+        </div>
+        <div>
+          <label for="lapXuan">Mốc Lập Xuân</label>
+          <select id="lapXuan">
+            <option value="after">Sau Lập Xuân</option>
+            <option value="before">Trước Lập Xuân</option>
+          </select>
+        </div>
+        <div>
+          <label for="direction">Hướng nhà</label>
+          <select id="direction">
+            <option>Bắc</option><option>Đông Bắc</option><option>Đông</option><option>Đông Nam</option>
+            <option>Nam</option><option selected>Tây Nam</option><option>Tây</option><option>Tây Bắc</option>
+          </select>
+        </div>
+        <button class="primary" id="lookupBtn" type="button">Tra cứu</button>
+      </div>
+      <p class="hint">Bản prototype đang áp dụng đúng quy tắc Excel: nếu sinh trước Lập Xuân thì dùng năm trước để tính Mệnh Quái. Chưa tự động tính thời điểm Lập Xuân theo ngày/giờ sinh.</p>
+    </div>
+  </section>
+
+  <section class="result-strip" aria-live="polite">
+    <div class="metric"><div class="k">Mệnh Quái</div><div class="v" id="menhMetric">—</div><div class="s" id="menhSub">Theo năm sinh</div></div>
+    <div class="metric"><div class="k">Trạch Quái</div><div class="v" id="trachMetric">—</div><div class="s" id="trachSub">Theo hướng nhà</div></div>
+    <div class="metric"><div class="k">Tọa – Hướng</div><div class="v" id="toaHuongMetric">—</div><div class="s" id="quaiHuongSub">—</div></div>
+    <div class="metric"><div class="k">Năm dùng để tính</div><div class="v" id="effectiveYearMetric">—</div><div class="s" id="lapXuanSub">—</div></div>
+  </section>
+
+  <section class="board-section panel board-panel">
+    <div class="board-title-row">
+      <div>
+        <h2>Tinh bàn 9 cung</h2>
+        <p>Hướng nhà luôn được đưa lên vị trí trên cùng để bàn xoay theo thực tế căn nhà.</p>
+      </div>
+      <div class="legend">
+        <span class="g">Cát: Sinh Khí · Thiên Y · Diên Niên · Phục Vị</span>
+        <span class="b">Hung: Tuyệt Mạng · Ngũ Quỷ · Lục Sát · Họa Hại</span>
+      </div>
+    </div>
+
+    <div class="compass-wrap">
+      <div class="arrow"></div>
+      <div class="arrow-label">Hướng nhà</div>
+      <div class="grid" id="compassGrid"></div>
+      <div class="compass-footer" id="compassFooter">—</div>
+    </div>
+
+    <div class="note">
+      Trung cung hiển thị đồng thời Mệnh Quái và Trạch Quái. Các ô còn lại hiển thị hai lớp Du Niên riêng biệt để có thể so sánh trực tiếp trên cùng một cung.
+    </div>
+  </section>
+
+  <section class="detail-grid">
+    <div class="panel table-panel">
+      <h3>Chi tiết 8 cung</h3>
+      <table>
+        <thead><tr><th>Cung</th><th>Theo Trạch Quái</th><th>Theo Mệnh Quái</th></tr></thead>
+        <tbody id="detailBody"></tbody>
+      </table>
+    </div>
+    <div class="panel test-panel">
+      <h3>Kiểm tra dữ liệu mẫu</h3>
+      <div class="test-status" id="testStatus">Đang kiểm tra…</div>
+      <div class="test-list" id="testList"></div>
+      <div class="note" style="margin-top:14px">Bấm một trường hợp để nạp nhanh vào form. Các test này lấy trực tiếp từ sheet <strong>TEST</strong>.</div>
+    </div>
+  </section>
+
+
+  <section class="panel du-nien-guide">
+    <h3>Chú giải 8 Du Niên</h3>
+    <p class="guide-intro">Bấm vào tên sao trên tinh bàn, trong bảng chi tiết hoặc một thẻ bên dưới để xem chú thích ngắn. Nút “Xem chi tiết” đã được chuẩn bị để gắn tới bài viết TMFS khi có đường dẫn chính thức.</p>
+    <div class="star-cards" id="starCards"></div>
+  </section>
+
+  <div class="modal-backdrop" id="starModal" role="dialog" aria-modal="true" aria-labelledby="modalStarTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title-wrap">
+          <h3 class="modal-title" id="modalStarTitle">—</h3>
+          <span class="modal-badge" id="modalStarBadge">—</span>
+        </div>
+        <button class="modal-close" id="modalClose" type="button" aria-label="Đóng">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-context" id="modalContext">Chú giải Du Niên</div>
+        <p id="modalStarDesc">—</p>
+        <div class="modal-actions">
+          <a class="detail-link" id="modalDetailLink" href="#" target="_blank" rel="noopener">Xem chi tiết</a>
+          <span class="link-note" id="modalLinkNote"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Prototype HTML tự chứa dữ liệu · có thể mở trực tiếp trên máy hoặc đưa lên GitHub Pages.</footer>
+</main>
+
+<script>
+const TRACH_DATA = {"Cấn": {"Nam": "Họa Hại", "Tây Nam": "Sinh Khí", "Tây": "Diên Niên", "Tây Bắc": "Thiên Y", "Bắc": "Ngũ Quỷ", "Đông Bắc": "Phục Vị", "Đông": "Lục Sát", "Đông Nam": "Tuyệt Mạng"}, "Càn": {"Nam": "Tuyệt Mạng", "Tây Nam": "Diên Niên", "Tây": "Sinh Khí", "Tây Bắc": "Phục Vị", "Bắc": "Lục Sát", "Đông Bắc": "Thiên Y", "Đông": "Ngũ Quỷ", "Đông Nam": "Họa Hại"}, "Khôn": {"Nam": "Lục Sát", "Tây Nam": "Phục Vị", "Tây": "Thiên Y", "Tây Bắc": "Diên Niên", "Bắc": "Tuyệt Mạng", "Đông Bắc": "Sinh Khí", "Đông": "Họa Hại", "Đông Nam": "Ngũ Quỷ"}, "Tốn": {"Nam": "Thiên Y", "Tây Nam": "Ngũ Quỷ", "Tây": "Lục Sát", "Tây Bắc": "Họa Hại", "Bắc": "Sinh Khí", "Đông Bắc": "Tuyệt Mạng", "Đông": "Diên Niên", "Đông Nam": "Phục Vị"}, "Khảm": {"Nam": "Diên Niên", "Tây Nam": "Tuyệt Mạng", "Tây": "Họa Hại", "Tây Bắc": "Lục Sát", "Bắc": "Phục Vị", "Đông Bắc": "Ngũ Quỷ", "Đông": "Thiên Y", "Đông Nam": "Sinh Khí"}, "Ly": {"Nam": "Phục Vị", "Tây Nam": "Lục Sát", "Tây": "Ngũ Quỷ", "Tây Bắc": "Tuyệt Mạng", "Bắc": "Diên Niên", "Đông Bắc": "Họa Hại", "Đông": "Sinh Khí", "Đông Nam": "Thiên Y"}, "Chấn": {"Nam": "Sinh Khí", "Tây Nam": "Họa Hại", "Tây": "Tuyệt Mạng", "Tây Bắc": "Ngũ Quỷ", "Bắc": "Thiên Y", "Đông Bắc": "Lục Sát", "Đông": "Phục Vị", "Đông Nam": "Diên Niên"}, "Đoài": {"Nam": "Ngũ Quỷ", "Tây Nam": "Thiên Y", "Tây": "Phục Vị", "Tây Bắc": "Sinh Khí", "Bắc": "Họa Hại", "Đông Bắc": "Diên Niên", "Đông": "Tuyệt Mạng", "Đông Nam": "Lục Sát"}};
+const MENH_DATA = {"Cấn": {"Nam": "Họa Hại", "Tây Nam": "Sinh Khí", "Tây": "Diên Niên", "Tây Bắc": "Thiên Y", "Bắc": "Ngũ Quỷ", "Đông Bắc": "Phục Vị", "Đông": "Lục Sát", "Đông Nam": "Tuyệt Mạng"}, "Càn": {"Nam": "Tuyệt Mạng", "Tây Nam": "Diên Niên", "Tây": "Sinh Khí", "Tây Bắc": "Phục Vị", "Bắc": "Lục Sát", "Đông Bắc": "Thiên Y", "Đông": "Ngũ Quỷ", "Đông Nam": "Họa Hại"}, "Khôn": {"Nam": "Lục Sát", "Tây Nam": "Phục Vị", "Tây": "Thiên Y", "Tây Bắc": "Diên Niên", "Bắc": "Tuyệt Mạng", "Đông Bắc": "Sinh Khí", "Đông": "Họa Hại", "Đông Nam": "Ngũ Quỷ"}, "Tốn": {"Nam": "Thiên Y", "Tây Nam": "Ngũ Quỷ", "Tây": "Lục Sát", "Tây Bắc": "Họa Hại", "Bắc": "Sinh Khí", "Đông Bắc": "Tuyệt Mạng", "Đông": "Diên Niên", "Đông Nam": "Phục Vị"}, "Khảm": {"Nam": "Diên Niên", "Tây Nam": "Tuyệt Mạng", "Tây": "Họa Hại", "Tây Bắc": "Lục Sát", "Bắc": "Phục Vị", "Đông Bắc": "Ngũ Quỷ", "Đông": "Thiên Y", "Đông Nam": "Sinh Khí"}, "Ly": {"Nam": "Phục Vị", "Tây Nam": "Lục Sát", "Tây": "Ngũ Quỷ", "Tây Bắc": "Tuyệt Mạng", "Bắc": "Diên Niên", "Đông Bắc": "Họa Hại", "Đông": "Sinh Khí", "Đông Nam": "Thiên Y"}, "Chấn": {"Nam": "Sinh Khí", "Tây Nam": "Họa Hại", "Tây": "Tuyệt Mạng", "Tây Bắc": "Ngũ Quỷ", "Bắc": "Thiên Y", "Đông Bắc": "Lục Sát", "Đông": "Phục Vị", "Đông Nam": "Diên Niên"}, "Đoài": {"Nam": "Ngũ Quỷ", "Tây Nam": "Thiên Y", "Tây": "Phục Vị", "Tây Bắc": "Sinh Khí", "Bắc": "Họa Hại", "Đông Bắc": "Diên Niên", "Đông": "Tuyệt Mạng", "Đông Nam": "Lục Sát"}};
+const HUONG_DATA = {"Bắc": {"quaiHuong": "Khảm", "toa": "Nam", "trachQuai": "Ly"}, "Đông Bắc": {"quaiHuong": "Cấn", "toa": "Tây Nam", "trachQuai": "Khôn"}, "Đông": {"quaiHuong": "Chấn", "toa": "Tây", "trachQuai": "Đoài"}, "Đông Nam": {"quaiHuong": "Tốn", "toa": "Tây Bắc", "trachQuai": "Càn"}, "Nam": {"quaiHuong": "Ly", "toa": "Bắc", "trachQuai": "Khảm"}, "Tây Nam": {"quaiHuong": "Khôn", "toa": "Đông Bắc", "trachQuai": "Cấn"}, "Tây": {"quaiHuong": "Đoài", "toa": "Đông", "trachQuai": "Chấn"}, "Tây Bắc": {"quaiHuong": "Càn", "toa": "Đông Nam", "trachQuai": "Tốn"}};
+const TESTS = [{"year": 1985, "gender": "Nam", "direction": "Tây Nam", "menhExpected": "Càn", "trachExpected": "Cấn"}, {"year": 1990, "gender": "Nữ", "direction": "Tây", "menhExpected": "Cấn", "trachExpected": "Chấn"}, {"year": 1984, "gender": "Nam", "direction": "Đông", "menhExpected": "Đoài", "trachExpected": "Đoài"}, {"year": 1983, "gender": "Nữ", "direction": "Nam", "menhExpected": "Đoài", "trachExpected": "Khảm"}, {"year": 2000, "gender": "Nữ", "direction": "Bắc", "menhExpected": "Càn", "trachExpected": "Ly"}];
+const DIRECTION_DEG = {"Bắc": 0, "Đông Bắc": 45, "Đông": 90, "Đông Nam": 135, "Nam": 180, "Tây Nam": 225, "Tây": 270, "Tây Bắc": 315};
+
+const GOOD_STARS = new Set(["Sinh Khí","Thiên Y","Diên Niên","Phục Vị"]);
+const STAR_INFO = {
+  "Sinh Khí": { type:"Cát", summary:"Chủ về sinh trưởng, sức sống, cơ hội phát triển, công việc và tài lộc. Thường được xem là một trong những khí tốt nổi bật của Bát Trạch.", url:"" },
+  "Thiên Y": { type:"Cát", summary:"Thiên về sự hỗ trợ, ổn định và phương diện sức khỏe. Khi ứng dụng thực tế cần xét thêm công năng của khu vực và bố cục toàn nhà.", url:"" },
+  "Diên Niên": { type:"Cát", summary:"Chủ về sự hòa hợp, các mối quan hệ, hôn nhân và tính bền vững lâu dài. Phù hợp khi cần tăng tính ổn định trong quan hệ và sinh hoạt.", url:"" },
+  "Phục Vị": { type:"Cát", summary:"Chủ về sự ổn định, bình hòa, nội lực và tính tĩnh. Thường phù hợp với những không gian cần sự yên tĩnh, tập trung hoặc nghỉ ngơi.", url:"" },
+  "Tuyệt Mạng": { type:"Hung", summary:"Là một trong các Du Niên hung, thường biểu thị mức độ bất lợi mạnh hơn. Khi rơi vào khu vực sử dụng quan trọng nên được xem xét cùng công năng và các yếu tố phong thủy khác.", url:"" },
+  "Tuyệt Mệnh": { type:"Hung", summary:"Là một trong các Du Niên hung, thường biểu thị mức độ bất lợi mạnh hơn. Khi rơi vào khu vực sử dụng quan trọng nên được xem xét cùng công năng và các yếu tố phong thủy khác.", url:"" },
+  "Ngũ Quỷ": { type:"Hung", summary:"Thường liên quan đến sự bất ổn, thị phi, xáo trộn hoặc những việc phát sinh ngoài dự tính. Cần kết hợp vị trí và mục đích sử dụng để đánh giá cụ thể.", url:"" },
+  "Lục Sát": { type:"Hung", summary:"Thường thiên về những vấn đề trong quan hệ, giao tiếp, xung đột hoặc phiền nhiễu. Mức độ ảnh hưởng cần xét trên tổng thể căn nhà và người sử dụng.", url:"" },
+  "Họa Hại": { type:"Hung", summary:"Thường biểu thị các trở ngại, phiền toái, khẩu thiệt hoặc việc nhỏ kéo dài. Khi ứng dụng nên đánh giá cùng vị trí, công năng và các yếu tố khác.", url:"" }
+};
+
+const QUAI_BY_NUMBER = {1:"Khảm",2:"Khôn",3:"Chấn",4:"Tốn",6:"Càn",7:"Đoài",8:"Cấn",9:"Ly"};
+
+function digitalRoot(n) {
+  n = Math.abs(Number(n));
+  if (!Number.isFinite(n)) return NaN;
+  while (n > 9) {
+    n = String(Math.trunc(n)).split("").reduce((a,b)=>a+Number(b),0);
+  }
+  return n;
+}
+
+function menhQuaiFromYear(year, gender, lapXuanStatus="after") {
+  const effectiveYear = lapXuanStatus === "before" ? Number(year)-1 : Number(year);
+  const root = digitalRoot(effectiveYear);
+  let number;
+  if (gender === "Nam") {
+    number = digitalRoot(11 - root);
+  } else {
+    number = digitalRoot(root + 4);
+  }
+  let quai;
+  if (number === 5) quai = gender === "Nam" ? "Khôn" : "Cấn";
+  else quai = QUAI_BY_NUMBER[number];
+  return { effectiveYear, root, number, quai };
+}
+
+function starClass(star) {
+  return GOOD_STARS.has(star) ? "good" : "bad";
+}
+
+function dirFromDeg(deg) {
+  deg = ((deg % 360) + 360) % 360;
+  const found = Object.entries(DIRECTION_DEG).find(([,d]) => d === deg);
+  return found ? found[0] : "";
+}
+
+function layoutDirections(facing) {
+  const base = DIRECTION_DEG[facing];
+  const offsets = [-45, 0, 45, -90, null, 90, -135, 180, 135];
+  return offsets.map(o => o === null ? null : dirFromDeg(base + o));
+}
+
+function sectorHTML(direction, menhQuai, trachQuai, facing) {
+  const tStar = TRACH_DATA[trachQuai]?.[direction] || "—";
+  const mStar = MENH_DATA[menhQuai]?.[direction] || "—";
+  return `<div class="sector">
+    <div class="direction">${direction}</div>
+    ${direction === facing ? '<div class="facing-mark">Hướng</div>' : ''}
+    <div class="star-block">
+      <div class="star-line"><span class="kind">Trạch</span><span class="star ${starClass(tStar)}" data-star="${tStar}" data-context="Cung ${direction} · Theo Trạch Quái ${trachQuai}">${tStar}</span></div>
+      <div class="star-line"><span class="kind">Mệnh</span><span class="star ${starClass(mStar)}" data-star="${mStar}" data-context="Cung ${direction} · Theo Mệnh Quái ${menhQuai}">${mStar}</span></div>
+    </div>
+  </div>`;
+}
+
+function centerHTML(menhQuai, trachQuai) {
+  return `<div class="sector center">
+    <div class="center-k">Mệnh Quái</div>
+    <div class="center-v">${menhQuai}</div>
+    <div class="slash"></div>
+    <div class="center-k">Trạch Quái</div>
+    <div class="center-v" style="margin-bottom:0">${trachQuai}</div>
+  </div>`;
+}
+
+
+function openStarModal(star, context="Chú giải Du Niên") {
+  const info = STAR_INFO[star];
+  if (!info) return;
+  const modal = document.getElementById("starModal");
+  const badge = document.getElementById("modalStarBadge");
+  const link = document.getElementById("modalDetailLink");
+  const note = document.getElementById("modalLinkNote");
+  document.getElementById("modalStarTitle").textContent = star;
+  document.getElementById("modalStarDesc").textContent = info.summary;
+  document.getElementById("modalContext").textContent = context;
+  badge.textContent = info.type;
+  badge.className = `modal-badge ${info.type === "Cát" ? "good" : "bad"}`;
+  link.dataset.url = info.url || "";
+  link.href = info.url || "#";
+  note.textContent = info.url ? "" : "Chưa gắn đường dẫn bài viết TMFS.";
+  modal.classList.add("open");
+}
+
+function closeStarModal() {
+  document.getElementById("starModal").classList.remove("open");
+}
+
+function bindStarClicks() {
+  document.querySelectorAll("[data-star]").forEach(el => {
+    el.onclick = () => openStarModal(el.dataset.star, el.dataset.context || "Chú giải Du Niên");
+  });
+}
+
+function renderStarCards() {
+  const order = ["Sinh Khí","Thiên Y","Diên Niên","Phục Vị","Tuyệt Mạng","Ngũ Quỷ","Lục Sát","Họa Hại"];
+  document.getElementById("starCards").innerHTML = order.map(star => {
+    const info = STAR_INFO[star];
+    const cls = info.type === "Cát" ? "good" : "bad";
+    return `<button type="button" class="star-card ${cls}" data-star="${star}" data-context="Chú giải 8 Du Niên">
+      <div class="title-row"><span class="name">${star}</span><span class="tag">${info.type}</span></div>
+      <p>${info.summary}</p>
+    </button>`;
+  }).join("");
+  bindStarClicks();
+}
+
+function render() {
+  const year = Number(document.getElementById("birthYear").value);
+  const gender = document.getElementById("gender").value;
+  const lap = document.getElementById("lapXuan").value;
+  const direction = document.getElementById("direction").value;
+
+  if (!Number.isInteger(year) || year < 1800 || year > 2200) {
+    alert("Vui lòng nhập năm sinh hợp lệ.");
+    return;
+  }
+
+  const menh = menhQuaiFromYear(year, gender, lap);
+  const house = HUONG_DATA[direction];
+  const trachQuai = house.trachQuai;
+  const menhQuai = menh.quai;
+
+  document.getElementById("menhMetric").textContent = menhQuai;
+  document.getElementById("menhSub").textContent = `Số Mệnh Quái: ${menh.number} · ${gender}`;
+  document.getElementById("trachMetric").textContent = trachQuai;
+  document.getElementById("trachSub").textContent = `Quái hướng: ${house.quaiHuong}`;
+  document.getElementById("toaHuongMetric").textContent = `${house.toa} – ${direction}`;
+  document.getElementById("quaiHuongSub").textContent = `Tọa ${house.toa} · Hướng ${direction}`;
+  document.getElementById("effectiveYearMetric").textContent = menh.effectiveYear;
+  document.getElementById("lapXuanSub").textContent = lap === "before" ? "Sinh trước Lập Xuân" : "Sinh sau Lập Xuân";
+
+  const dirs = layoutDirections(direction);
+  const cells = dirs.map(d => d === null ? centerHTML(menhQuai,trachQuai) : sectorHTML(d,menhQuai,trachQuai,direction));
+  document.getElementById("compassGrid").innerHTML = cells.join("");
+  document.getElementById("compassFooter").textContent = `Tọa ${house.toa} · Hướng ${direction} · Mệnh Quái ${menhQuai} · ${trachQuai} Trạch`;
+
+  const absoluteOrder = ["Bắc","Đông Bắc","Đông","Đông Nam","Nam","Tây Nam","Tây","Tây Bắc"];
+  document.getElementById("detailBody").innerHTML = absoluteOrder.map(d => {
+    const ts = TRACH_DATA[trachQuai][d];
+    const ms = MENH_DATA[menhQuai][d];
+    return `<tr>
+      <td><strong>${d}</strong>${d===direction ? ' <span style="font-size:10px;color:#1478b8">• Hướng</span>' : ''}</td>
+      <td><span class="mini ${starClass(ts)}" data-star="${ts}" data-context="Cung ${d} · Theo Trạch Quái ${trachQuai}">${ts}</span></td>
+      <td><span class="mini ${starClass(ms)}" data-star="${ms}" data-context="Cung ${d} · Theo Mệnh Quái ${menhQuai}">${ms}</span></td>
+    </tr>`;
+  }).join("");
+}
+
+function runTests() {
+  let passed = 0;
+  const lines = [];
+  TESTS.forEach((t, i) => {
+    const menh = menhQuaiFromYear(t.year, t.gender, "after").quai;
+    const trach = HUONG_DATA[t.direction]?.trachQuai;
+    const ok = menh === t.menhExpected && trach === t.trachExpected;
+    if (ok) passed++;
+    lines.push(`<button type="button" class="test-case" data-i="${i}">
+      ${ok ? "✓" : "!"} <strong>${t.year} · ${t.gender} · ${t.direction}</strong><br>
+      Mệnh: ${menh} / Trạch: ${trach}
+    </button>`);
+  });
+  document.getElementById("testStatus").textContent = `${passed}/${TESTS.length} trường hợp trong sheet TEST khớp kết quả.`;
+  document.getElementById("testList").innerHTML = lines.join("");
+  document.querySelectorAll(".test-case").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const t = TESTS[Number(btn.dataset.i)];
+      document.getElementById("birthYear").value = t.year;
+      document.getElementById("gender").value = t.gender;
+      document.getElementById("lapXuan").value = "after";
+      document.getElementById("direction").value = t.direction;
+      render();
+      window.scrollTo({top:document.querySelector(".result-strip").offsetTop-12,behavior:"smooth"});
+    });
+  });
+}
+
+document.getElementById("lookupBtn").addEventListener("click", render);
+["birthYear","gender","lapXuan","direction"].forEach(id => {
+  document.getElementById(id).addEventListener("change", render);
+});
+document.getElementById("birthYear").addEventListener("keydown", e => {
+  if (e.key === "Enter") render();
+});
+
+runTests();
+render();
+
+renderStarCards();
+bindStarClicks();
+document.getElementById("modalClose").addEventListener("click", closeStarModal);
+document.getElementById("starModal").addEventListener("click", e => { if (e.target.id === "starModal") closeStarModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeStarModal(); });
+document.getElementById("modalDetailLink").addEventListener("click", e => {
+  if (!e.currentTarget.dataset.url) {
+    e.preventDefault();
+    document.getElementById("modalLinkNote").textContent = "Chưa có link bài viết. Bạn có thể gửi 8 URL TMFS để tôi gắn trực tiếp.";
+  }
+});
+
+</script>
+</body>
+</html>
